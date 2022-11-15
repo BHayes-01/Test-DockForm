@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Threading;
 using System.Runtime.InteropServices;
 using WpfAppBar;
-using System.Threading;
+
 
 namespace AppBarExample
 {
@@ -13,6 +14,8 @@ namespace AppBarExample
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Screen _screen;
+
         #region Win API
 
         /// Return Type: BOOL->int  
@@ -20,7 +23,7 @@ namespace AppBarExample
         ///Y: int  
         [DllImportAttribute("user32.dll", EntryPoint = "SetCursorPos")]
         [return: MarshalAsAttribute(UnmanagedType.Bool)]
-        public static extern bool SetCursorPos(int X, int Y);
+        private static extern bool SetCursorPos(int X, int Y);
 
         #endregion Win API
 
@@ -50,9 +53,14 @@ namespace AppBarExample
 
         private void AppBar_OnClick(object sender, RoutedEventArgs e)
         {
-            _startPos = new Rect { X = Left, Y = Top, Width = this.Width, Height = this.Height };
+            _startPos = new Rect(Left, Top, Width, Height);
 
             DockForm(ABEdge.Right);
+        }
+
+        private Screen CurrentScreen()
+        {
+            return Screen.FromPoint(new System.Drawing.Point((int)Left, (int)Top));
         }
 
         private void Normal_OnClick(object sender, RoutedEventArgs e)
@@ -70,7 +78,7 @@ namespace AppBarExample
             }            
         }
 
-        private void Window_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             // check if docked
             if (AppBar.IsEnabled)
@@ -78,7 +86,7 @@ namespace AppBarExample
                 return;
             }
 
-            var point = this.PointToScreen(e.GetPosition(this));
+            var point = PointToScreen(e.GetPosition(this));
 
             if (point.Y < 100)
             {
@@ -86,6 +94,7 @@ namespace AppBarExample
 
                 try
                 {
+                    _screen = CurrentScreen();
                     DragMove();
                 }
                 catch
@@ -96,10 +105,20 @@ namespace AppBarExample
                 
             }
         }
-
+                
         private void Window_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            MoveForm();
+            var screen = CurrentScreen();
+
+            if (Equals(screen, _screen))
+            {
+                _isBeingDragged = false;
+                DockForm(ABEdge.Right);
+            }
+            else
+            {
+                MoveForm();
+            }
         }
 
         #endregion Form Events
@@ -113,23 +132,6 @@ namespace AppBarExample
         public static void Refresh(DependencyObject obj)
         {
             obj.Dispatcher.Invoke(DispatcherPriority.ApplicationIdle, (NoArgDelegate)delegate { });
-        }
-
-        /// <summary>
-        /// Initiates moving the form after a drag drop.
-        /// </summary>
-        private void MoveForm()
-        {
-            if (!_isBeingDragged)
-                return;
-
-            _isBeingDragged = false;
-
-            var info = AppBarFunctions.GetRegisterInfo(this);
-            info.DockedSize = null;
-
-            // snap the window to the side like a task bar
-            DockForm(ABEdge.Right);
         }
 
         /// <summary>
@@ -148,6 +150,23 @@ namespace AppBarExample
 
             // snap the window to the side like a task bar
             AppBarFunctions.SetAppBar(this, edge, grid);
+        }
+
+        /// <summary>
+        /// Initiates moving the form after a drag drop.
+        /// </summary>
+        private void MoveForm()
+        {
+            if (!_isBeingDragged)
+                return;
+
+            _isBeingDragged = false;
+
+            var info = AppBarFunctions.GetRegisterInfo(this);
+            info.DockedSize = null;
+
+            // snap the window to the side like a task bar
+            DockForm(ABEdge.Right);
         }
 
         /// <summary>
@@ -178,5 +197,6 @@ namespace AppBarExample
 
 
         #endregion Methods
+
     }
 }

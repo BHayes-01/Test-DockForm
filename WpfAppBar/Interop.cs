@@ -5,26 +5,38 @@ namespace WpfAppBar
 {
     class Interop
     {
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct RECT
+        internal enum ABMsg : int
         {
-            public int left;
-            public int top;
-            public int right;
-            public int bottom;
+            ABM_NEW = 0,
+            ABM_REMOVE,
+            ABM_QUERYPOS,
+            ABM_SETPOS,
+            ABM_GETSTATE,
+            ABM_GETTASKBARPOS,
+            ABM_ACTIVATE,
+            ABM_GETAUTOHIDEBAR,
+            ABM_SETAUTOHIDEBAR,
+            ABM_WINDOWPOSCHANGED,
+            ABM_SETSTATE
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct APPBARDATA
+        internal enum ABNotify : int
         {
-            public int cbSize;
-            public IntPtr hWnd;
-            public int uCallbackMessage;
-            public int uEdge;
-            public RECT rc;
-            public IntPtr lParam;
+            ABN_STATECHANGE = 0,
+            ABN_POSCHANGED,
+            ABN_FULLSCREENAPP,
+            ABN_WINDOWARRANGE
         }
-        
+
+        [Flags]
+        internal enum DWMNCRenderingPolicy
+        {
+            UseWindowStyle,
+            Disabled,
+            Enabled,
+            Last
+        }
+
         [Flags]
         internal enum DWMWINDOWATTRIBUTE
         {
@@ -43,42 +55,37 @@ namespace WpfAppBar
             DWMA_LAST
         }
 
-        [Flags]
-        internal enum DWMNCRenderingPolicy
-        {
-            UseWindowStyle,
-            Disabled,
-            Enabled,
-            Last
-        }
-
-        internal enum ABMsg : int
-        {
-            ABM_NEW = 0,
-            ABM_REMOVE,
-            ABM_QUERYPOS,
-            ABM_SETPOS,
-            ABM_GETSTATE,
-            ABM_GETTASKBARPOS,
-            ABM_ACTIVATE,
-            ABM_GETAUTOHIDEBAR,
-            ABM_SETAUTOHIDEBAR,
-            ABM_WINDOWPOSCHANGED,
-            ABM_SETSTATE
-        }
-        internal enum ABNotify : int
-        {
-            ABN_STATECHANGE = 0,
-            ABN_POSCHANGED,
-            ABN_FULLSCREENAPP,
-            ABN_WINDOWARRANGE
-        }
-
         internal enum MonitorDefaultTo
         {
             MONITOR_DEFAULTTONULL,
             MONITOR_DEFAULTTOPRIMARY,
             MONITOR_DEFAULTTONEAREST
+        }
+
+        [DllImport("dwmapi.dll")]
+        internal static extern int DwmSetWindowAttribute(IntPtr hWnd, int attr, ref int attrValue, int attrSize);
+
+        [DllImport("User32.dll")]
+        internal static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [DllImport("User32.dll")]
+        internal static extern IntPtr MonitorFromWindow(IntPtr hWnd, MonitorDefaultTo dwFlags);
+
+        [DllImport("User32.dll", CharSet = CharSet.Auto)]
+        internal static extern int RegisterWindowMessage(string msg);
+
+        [DllImport("SHELL32", CallingConvention = CallingConvention.StdCall)]
+        internal static extern uint SHAppBarMessage(int dwMessage, ref APPBARDATA pData);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct APPBARDATA
+        {
+            public int cbSize;
+            public IntPtr hWnd;
+            public int uCallbackMessage;
+            public int uEdge;
+            public RECT rc;
+            public IntPtr lParam;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -90,19 +97,14 @@ namespace WpfAppBar
             public uint dwFlags;
         }
 
-        [DllImport("SHELL32", CallingConvention = CallingConvention.StdCall)]
-        internal static extern uint SHAppBarMessage(int dwMessage, ref APPBARDATA pData);
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
 
-        [DllImport("User32.dll", CharSet = CharSet.Auto)]
-        internal static extern int RegisterWindowMessage(string msg);
-        
-        [DllImport("dwmapi.dll")]
-        internal static extern int DwmSetWindowAttribute(IntPtr hWnd, int attr, ref int attrValue, int attrSize);
-
-        [DllImport("User32.dll")]
-        internal static extern IntPtr MonitorFromWindow(IntPtr hWnd, MonitorDefaultTo dwFlags);
-
-        [DllImport("User32.dll")]
-        internal static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
     }
 }

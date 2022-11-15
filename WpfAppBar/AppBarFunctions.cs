@@ -19,10 +19,38 @@ namespace WpfAppBar
     public static class AppBarFunctions
     {
 
-        private static readonly Dictionary<Window, RegisterInfo> RegisteredWindowInfo
-            = new Dictionary<Window, RegisterInfo>();
+        private static readonly Dictionary<Window, RegisterInfo> RegisteredWindowInfo = new Dictionary<Window, RegisterInfo>();
 
         private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
+
+        public static RegisterInfo GetRegisterInfo(Window appbarWindow)
+        {
+            RegisterInfo reg;
+            if (RegisteredWindowInfo.ContainsKey(appbarWindow))
+            {
+                reg = RegisteredWindowInfo[appbarWindow];
+            }
+            else
+            {
+                reg = new RegisterInfo()
+                {
+                    CallbackId = 0,
+                    Window = appbarWindow,
+                    IsRegistered = false,
+                    Edge = ABEdge.Top,
+                    OriginalStyle = appbarWindow.WindowStyle,
+                    OriginalPosition = new Point(appbarWindow.Left, appbarWindow.Top),
+                    OriginalSize =
+                        new Size(appbarWindow.ActualWidth, appbarWindow.ActualHeight),
+                    OriginalResizeMode = appbarWindow.ResizeMode,
+                    OriginalTopmost = appbarWindow.Topmost,
+                    DockedSize = null
+
+                };
+                RegisteredWindowInfo.Add(appbarWindow, reg);
+            }
+            return reg;
+        }
 
         public static void SetAppBar(Window appbarWindow, ABEdge edge, FrameworkElement childElement = null, bool topMost = true, bool restorePosition = true)
         {
@@ -83,6 +111,23 @@ namespace WpfAppBar
             Interop.DwmSetWindowAttribute(abd.hWnd, (int)Interop.DWMWINDOWATTRIBUTE.DWMA_DISALLOW_PEEK, ref renderPolicy, sizeof(int));
 
             ABSetPos(info, appbarWindow, childElement);
+        }
+
+        internal static void RestoreWindow(Window appbarWindow)
+        {
+            var info = GetRegisterInfo(appbarWindow);
+
+            appbarWindow.WindowStyle = info.OriginalStyle;
+            appbarWindow.ResizeMode = info.OriginalResizeMode;
+            appbarWindow.Topmost = info.OriginalTopmost;
+
+            info.DockedSize = null;
+
+            var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y,
+                info.OriginalSize.Width, info.OriginalSize.Height);
+            appbarWindow.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
+                    new ResizeDelegate(DoResize), appbarWindow, rect);
+
         }
 
         private static void ABSetPos(RegisterInfo info, Window appbarWindow, FrameworkElement childElement)
@@ -192,52 +237,6 @@ namespace WpfAppBar
             monitorInfo.cbSize = Marshal.SizeOf(monitorInfo);
             Interop.GetMonitorInfo(hMonitor, ref monitorInfo);
             return monitorInfo.rcWork;
-        }
-
-        public static RegisterInfo GetRegisterInfo(Window appbarWindow)
-        {
-            RegisterInfo reg;
-            if (RegisteredWindowInfo.ContainsKey(appbarWindow))
-            {
-                reg = RegisteredWindowInfo[appbarWindow];
-            }
-            else
-            {
-                reg = new RegisterInfo()
-                {
-                    CallbackId = 0,
-                    Window = appbarWindow,
-                    IsRegistered = false,
-                    Edge = ABEdge.Top,
-                    OriginalStyle = appbarWindow.WindowStyle,
-                    OriginalPosition = new Point(appbarWindow.Left, appbarWindow.Top),
-                    OriginalSize =
-                        new Size(appbarWindow.ActualWidth, appbarWindow.ActualHeight),
-                    OriginalResizeMode = appbarWindow.ResizeMode,
-                    OriginalTopmost = appbarWindow.Topmost,
-                    DockedSize = null
-
-                };
-                RegisteredWindowInfo.Add(appbarWindow, reg);
-            }
-            return reg;
-        }
-
-        internal static void RestoreWindow(Window appbarWindow)
-        {
-            var info = GetRegisterInfo(appbarWindow);
-
-            appbarWindow.WindowStyle = info.OriginalStyle;
-            appbarWindow.ResizeMode = info.OriginalResizeMode;
-            appbarWindow.Topmost = info.OriginalTopmost;
-
-            info.DockedSize = null;
-
-            var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y,
-                info.OriginalSize.Width, info.OriginalSize.Height);
-            appbarWindow.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
-                    new ResizeDelegate(DoResize), appbarWindow, rect);
-
         }
 
         public class RegisterInfo
