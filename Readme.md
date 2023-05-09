@@ -36,8 +36,7 @@ AppBarFunctions.SetAppBar(this, ABEdge.None);
 
 I found a bug!
 --------------
-Please add an issue, or better yet send a pull request.
-Thanks!
+This code only works if the Scale is set to 100% under display options.
 
 
 
